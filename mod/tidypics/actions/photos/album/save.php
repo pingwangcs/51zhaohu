@@ -1,0 +1,82 @@
+<?php
+/**
+ * Save album action
+ *
+ * @author Cash Costello
+ * @license http://www.gnu.org/licenses/gpl-2.0.html GNU General Public License v2
+ */
+
+
+// Get input data
+$title = get_input('title');
+$description = get_input('description');
+$tags = get_input('tags');
+$access_id = get_input('access_id');
+$container_guid = get_input('container_guid', elgg_get_logged_in_user_guid());
+$guid = get_input('guid');
+
+elgg_make_sticky_form('tidypics');
+
+$container = get_entity($container_guid);
+if (!($container instanceof ElggGroup)){
+	register_error(elgg_echo("album:error") . elgg_echo("zhaohu:sorry"));
+	elgg_log("ZHError , tidypics:album:save, container is not group, container_id $container_guid, user_id "
+	.elgg_get_logged_in_user_guid(), "ERROR");
+	forward(REFERER);
+}
+
+if (empty($title)) {
+	register_error(elgg_echo("album:blank"));
+	forward(REFERER);
+}
+if(strlen($title)>ZH_NAME_MAX){
+	register_error(elgg_echo('album:titletoolong').elgg_echo('input:max', array(ZH_NAME_MAX/3, ZH_NAME_MAX)));
+	forward(REFERER);
+}
+if(strlen($description)>ZH_DESP_MAX){
+	register_error(elgg_echo('album:desptoolong').elgg_echo('input:max', array(ZH_DESP_MAX/3, ZH_DESP_MAX)));
+	forward(REFERER);
+}
+
+if ($guid) {
+	$album = get_entity($guid);
+	if ($album->access_id != $access_id) {
+            $options = array('type' => 'object', 'subtype' => 'image', 'container_guid' => $album->guid, 'limit' => false);
+            $images = new ElggBatch('elgg_get_entities', $options);
+	    foreach($images as $image) {
+	        $image->access_id = $access_id;
+	        $image->save();
+	    }
+	    $options = array('type' => 'object', 'subtype' => 'tidypics_batch', 'container_guid' => $album->guid, 'limit' => false);
+            $batches = new ElggBatch('elgg_get_entities', $options);
+            foreach($batches as $batch) {
+                $batch->access_id = $access_id;
+                $batch->save();
+            }
+	}
+} else {
+	$album = new TidypicsAlbum();
+}
+
+$album->container_guid = $container_guid;
+$album->owner_guid = elgg_get_logged_in_user_guid();
+$album->access_id = $access_id;
+$album->title = $title;
+$album->description = $description;
+if($tags) {
+        $album->tags = string_to_tag_array($tags);
+} else {
+        $album->deleteMetadata('tags');
+}
+
+if (!$album->save()) {
+	register_error(elgg_echo("album:error") . elgg_echo("zhaohu:sorry"));
+	elgg_log("ZHError , tidypics:album:save, error calling album->save(), album_id {$guid} , user_id "
+	.elgg_get_logged_in_user_guid(), "ERROR");
+	forward(REFERER);
+}
+
+elgg_clear_sticky_form('tidypics');
+
+system_message(elgg_echo("album:created"));
+forward($album->getURL());

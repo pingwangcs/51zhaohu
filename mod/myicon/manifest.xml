@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin_manifest xmlns="http://www.elgg.org/plugin_manifest/1.8">
+	<name>My icon</name>
+	<author>Ping Wang</author>
+	<version>1.8</version>
+	<category>avatar</category>
+	<description>Uses customized icons for users, groups and more.</description>
+	<requires>
+		<type>elgg_release</type>
+		<version>1.8</version>
+	</requires>
+</plugin_manifest>
